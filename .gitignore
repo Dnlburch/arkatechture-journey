@@ -8,6 +8,8 @@ __pycache__/
 
 .idea/
 
+database.ini
+
 # Distribution / packaging
 .Python
 build/
