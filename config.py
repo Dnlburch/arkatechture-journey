@@ -16,3 +16,5 @@ def config(filename="database.ini", section="postgresql"):
     else:
         raise Exception(f'Section:{section} is not found in the {filename} file.')
     print(db)
+
+config()
