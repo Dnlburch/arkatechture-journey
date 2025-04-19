@@ -5,7 +5,7 @@ def connect():
     connection = None
     try:
         params = config()
-        print(params)
+        # print(params)
         print('connting to postgreSQL...')
         connection = psycopg2.connect(**params)
 
@@ -19,6 +19,7 @@ def connect():
 
     except(Exception, psycopg2.DataError) as error:
         print(error)
+
     finally:
         if connection != None:
             connection.close()
