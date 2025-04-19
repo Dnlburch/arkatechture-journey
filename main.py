@@ -15,17 +15,41 @@ SCHEMA_FILE = os.path.join(DATA_DIR, 'INFORMATION_SCHEMA.csv')
 def connect_db():
     return psycopg2.connect(**DB_CONFIG)
 
+#holy guacamole. This was a bit harder than I thought
+#we just had to iterate and narrow down so many things.
+#headers were parsing as one whole string.
+
 def parse_schema(schema_path):
-    df = pd.read_csv(schema_path)
+    rows = []
+    with open(schema_path, newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',', quotechar='"')
+        raw_header = next(reader)
+        if len(raw_header) == 1:
+            headers = [h.strip().strip('"') for h in raw_header[0].split(',')]
+        else:
+            headers = [h.strip().strip('"') for h in raw_header]
+
+        for row in reader:
+            row = [r.strip() for r in row]
+            if len(row) > len(headers):
+                # Fix split data_type field
+                fixed_row = row[:4] + [','.join(row[4:]).strip()]
+                row = fixed_row
+            if len(row) != len(headers):
+                raise ValueError(f"Malformed row after correction: {row}")
+            rows.append(row)
+
+    df = pd.DataFrame(rows, columns=headers)
     table_defs = {}
     for _, row in df.iterrows():
-        table = row['table_name']
-        column = row['column_name']
-        datatype = row['data_type']
+        table = row['TABLE_NAME']
+        column = row['COLUMN_NAME']
+        datatype = row['DATA_TYPE']
         if table not in table_defs:
             table_defs[table] = []
         table_defs[table].append((column, datatype))
     return table_defs
+
 
 def create_tables(conn, table_defs):
     with conn.cursor() as cur:
