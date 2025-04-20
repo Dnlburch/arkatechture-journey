@@ -5,6 +5,11 @@ from psycopg2 import sql
 import pandas as pd
 from config import config
 
+#analysis vars
+overdrawn_accounts = []
+overpaid_loans = []
+asset_sum = 0
+
 # # --- Configuration ---
 DB_CONFIG = config()
 
@@ -15,11 +20,60 @@ SCHEMA_FILE = os.path.join(DATA_DIR, 'INFORMATION_SCHEMA.csv')
 def connect_db():
     return psycopg2.connect(**DB_CONFIG)
 
-#so we do lower case everywhere because if you don't, you have key errors (Not matching case) and its just easier to all lower
+# --- Phase 2 Analysis Functions ---
+def get_overdrawn_checking_accounts(conn):
+    with conn.cursor() as cur:
+        #Essentially we are joining checking and transactions table on the account guid. Then adding starting amount
+        #and the sum of transactions. When transactions added to starting equals negative, its overdrawn. However how do
+        #we know which transactions are for what? Need clarification
+        cur.execute("""
+            SELECT c.account_guid,
+                   c.starting_balance,
+                   COALESCE(SUM(t.transaction_amount), 0) AS total_transactions,
+                   c.starting_balance + COALESCE(SUM(t.transaction_amount), 0) AS ending_balance
+            FROM checking c
+            LEFT JOIN transactions t
+            ON c.account_guid = t.account_guid
+            GROUP BY c.account_guid, c.starting_balance
+            HAVING (c.starting_balance + COALESCE(SUM(t.transaction_amount), 0)) < 0
+        """)
+        rows = cur.fetchall()
+        print("[RESULT] Overdrawn Checking Accounts (calculated with transactions):")
+        for account_guid, starting_balance, total_transactions, ending_balance in rows:
+            overdrawn_accounts.append((f"- {account_guid}: Starting ${starting_balance:.2f}, Transactions ${total_transactions:.2f}, Ending ${ending_balance:.2f}"))
+            print(f"- {account_guid}: Starting ${starting_balance:.2f}, Transactions ${total_transactions:.2f}, Ending ${ending_balance:.2f}")
 
-# --- Helper Functions ---
-def connect_db():
-    return psycopg2.connect(**DB_CONFIG)
+
+def get_overpaid_loans(conn):
+    #work in progress. Just using a simple statement as placeholder. We need to know which transactions are against loans
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT account_guid, starting_debt
+            FROM loans
+            WHERE starting_debt < 0
+        """)
+        rows = cur.fetchall()
+        print("\n[RESULT] Overpaid Loans:")
+        for account_guid, debt in rows:
+            print(f"- {account_guid}: Overpaid by ${abs(debt):.2f}")
+
+def get_total_asset_size(conn):
+    #I feel like this depends as well on the clarification answers. For now we will just add starting balance with starting debt
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT
+                COALESCE((SELECT SUM(starting_balance) FROM checking), 0) +
+                COALESCE((SELECT SUM(starting_debt) FROM loans), 0)
+            AS total_assets
+        """)
+        total = cur.fetchone()[0]
+        print(f"\n[RESULT] Total Asset Size of Institution: ${total:.2f}")
+
+#PHASE 1
+#so we do lower case everywhere because if you don't, you have key errors (Not matching case) and its just easier to all lower
+#we also had to learn this the hard way. But this was really good experience as I have never started a database and instance
+#from scratch. This was really good to know. I think there was definitely a better way to parse then what I did.
+#what I kept running into was key errors mainly dealing with the datatype column and the numeric(.. rows.
 
 def parse_schema(schema_path):
     rows = []
@@ -34,7 +88,6 @@ def parse_schema(schema_path):
         for row in reader:
             row = [r.strip() for r in row]
             if len(row) > len(headers):
-                # Fix split data_type field
                 fixed_row = row[:4] + [','.join(row[4:]).strip()]
                 row = fixed_row
             if len(row) != len(headers):
@@ -125,6 +178,11 @@ def main():
             file_path = os.path.join(DATA_DIR, csv_file)
             print(f"Inserting data from {csv_file} into {table_name}...")
             insert_csv_to_table(conn, table_name, file_path)
+
+        # --- Phase 2 Execution ---
+        get_overdrawn_checking_accounts(conn)
+        get_overpaid_loans(conn)
+        get_total_asset_size(conn)
 
     finally:
         conn.close()
