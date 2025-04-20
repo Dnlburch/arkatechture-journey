@@ -17,6 +17,10 @@ def connect_db():
 
 #so we do lower case everywhere because if you don't, you have key errors (Not matching case) and its just easier to all lower
 
+# --- Helper Functions ---
+def connect_db():
+    return psycopg2.connect(**DB_CONFIG)
+
 def parse_schema(schema_path):
     rows = []
     with open(schema_path, newline='', encoding='utf-8') as csvfile:
@@ -65,23 +69,47 @@ def create_tables(conn, table_defs):
                 continue
     conn.commit()
 
+def get_table_columns(conn, table_name):
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = %s
+        """, (table_name.lower(),))
+        return [row[0] for row in cur.fetchall()]
+
 def insert_csv_to_table(conn, table_name, file_path):
     df = pd.read_csv(file_path)
-    cols = [col.lower() for col in df.columns]
-    df.columns = cols
+    df.columns = [col.lower() for col in df.columns]
+    table_columns = get_table_columns(conn, table_name)
+    insert_cols = [col for col in table_columns if col in df.columns]
+    missing_cols = [col for col in table_columns if col not in df.columns]
+    extra_cols = [col for col in df.columns if col not in table_columns]
+
+    if missing_cols:
+        print(f"[INFO] {table_name}: Missing columns in CSV that exist in DB: {missing_cols}")
+    if extra_cols:
+        print(f"[INFO] {table_name}: Extra columns in CSV not in DB: {extra_cols}")
+
+    successful_inserts = 0
+    failed_inserts = 0
+
     with conn.cursor() as cur:
         for _, row in df.iterrows():
-            values = [row[col] if pd.notnull(row[col]) else None for col in cols]
+            values = [row.get(col, None) for col in insert_cols]
             insert_stmt = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
                 sql.Identifier(table_name.lower()),
-                sql.SQL(', ').join(map(sql.Identifier, cols)),
-                sql.SQL(', ').join(sql.Placeholder() * len(cols))
+                sql.SQL(', ').join(map(sql.Identifier, insert_cols)),
+                sql.SQL(', ').join(sql.Placeholder() * len(insert_cols))
             )
             try:
                 cur.execute(insert_stmt, values)
+                successful_inserts += 1
             except Exception as e:
-                print(f"Failed to insert into {table_name}: {e}")
+                failed_inserts += 1
+                print(f"[ERROR] Failed to insert row into {table_name}: {e}")
     conn.commit()
+    print(f"[SUMMARY] {table_name}: {successful_inserts} rows inserted, {failed_inserts} failed.")
 
 # --- Main ETL Workflow ---
 def main():
