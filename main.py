@@ -15,9 +15,7 @@ SCHEMA_FILE = os.path.join(DATA_DIR, 'INFORMATION_SCHEMA.csv')
 def connect_db():
     return psycopg2.connect(**DB_CONFIG)
 
-#holy guacamole. This was a bit harder than I thought
-#we just had to iterate and narrow down so many things.
-#headers were parsing as one whole string.
+#so we do lower case everywhere because if you don't, you have key errors (Not matching case) and its just easier to all lower
 
 def parse_schema(schema_path):
     rows = []
@@ -42,34 +40,40 @@ def parse_schema(schema_path):
     df = pd.DataFrame(rows, columns=headers)
     table_defs = {}
     for _, row in df.iterrows():
-        table = row['TABLE_NAME']
-        column = row['COLUMN_NAME']
+        table = row['TABLE_NAME'].lower()
+        column = row['COLUMN_NAME'].lower()
         datatype = row['DATA_TYPE']
         if table not in table_defs:
             table_defs[table] = []
         table_defs[table].append((column, datatype))
     return table_defs
 
-
 def create_tables(conn, table_defs):
     with conn.cursor() as cur:
         for table, columns in table_defs.items():
-            col_defs = [f"{col} {dtype}" for col, dtype in columns]
-            create_stmt = sql.SQL("CREATE TABLE IF NOT EXISTS {} ({});").format(
-                sql.Identifier(table),
-                sql.SQL(', ').join(sql.SQL(c) for c in col_defs)
-            )
-            cur.execute(create_stmt)
+            col_defs = [f"{col} {dtype.strip().strip('\"')}" for col, dtype in columns]
+            try:
+                create_stmt = sql.SQL("CREATE TABLE IF NOT EXISTS {} ({});").format(
+                    sql.Identifier(table),
+                    sql.SQL(', ').join(sql.SQL(c) for c in col_defs)
+                )
+                print(f"\n[DEBUG] Creating table {table} with SQL: {create_stmt.as_string(conn)}")
+                cur.execute(create_stmt)
+            except Exception as e:
+                conn.rollback()
+                print(f"[ERROR] Failed to create table {table}: {e}")
+                continue
     conn.commit()
 
 def insert_csv_to_table(conn, table_name, file_path):
     df = pd.read_csv(file_path)
-    cols = list(df.columns)
+    cols = [col.lower() for col in df.columns]
+    df.columns = cols
     with conn.cursor() as cur:
         for _, row in df.iterrows():
             values = [row[col] if pd.notnull(row[col]) else None for col in cols]
             insert_stmt = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
-                sql.Identifier(table_name),
+                sql.Identifier(table_name.lower()),
                 sql.SQL(', ').join(map(sql.Identifier, cols)),
                 sql.SQL(', ').join(sql.Placeholder() * len(cols))
             )
