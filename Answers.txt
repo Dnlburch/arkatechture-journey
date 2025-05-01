@@ -1,0 +1,43 @@
+####RESULTS######
+# Overdrawn Checking Accounts (calculated with transactions):
+# - e4caa1f9-cf66-11ee-b54b-e00af6801390: Starting $29649.40, Transactions $-31680.09, Ending $-2030.69
+# - e4ca2cc8-cf66-11ee-813d-e00af6801390: Starting $23225.81, Transactions $-47353.01, Ending $-24127.20
+# - e4ca7af3-cf66-11ee-8749-e00af6801390: Starting $3006.16, Transactions $-4585.34, Ending $-1579.18
+# - e4c91b74-cf66-11ee-abf3-e00af6801390: Starting $12978.22, Transactions $-15215.66, Ending $-2237.44
+# - e4c8edd9-cf66-11ee-acad-e00af6801390: Starting $936.21, Transactions $-7992.35, Ending $-7056.14
+# - e4ca5406-cf66-11ee-aea4-e00af6801390: Starting $13774.74, Transactions $-37453.13, Ending $-23678.39
+# - e4ca7b25-cf66-11ee-b764-e00af6801390: Starting $17779.38, Transactions $-24486.91, Ending $-6707.53
+# - e4c8f451-cf66-11ee-9a42-e00af6801390: Starting $7452.18, Transactions $-58201.49, Ending $-50749.31
+# - e4c91b8c-cf66-11ee-b4c2-e00af6801390: Starting $12270.53, Transactions $-25195.37, Ending $-12924.84
+# - e4caa221-cf66-11ee-845a-e00af6801390: Starting $2807.27, Transactions $-16568.64, Ending $-13761.37
+# - e4ca5414-cf66-11ee-94cb-e00af6801390: Starting $5394.61, Transactions $-24361.34, Ending $-18966.73
+# - e4cac936-cf66-11ee-aad3-e00af6801390: Starting $4972.15, Transactions $-17790.82, Ending $-12818.67
+# - e4c9b7d0-cf66-11ee-90e4-e00af6801390: Starting $9368.49, Transactions $-33053.20, Ending $-23684.71
+# - e4cac93d-cf66-11ee-95f5-e00af6801390: Starting $17767.48, Transactions $-46513.24, Ending $-28745.76
+# - e4c990bc-cf66-11ee-81df-e00af6801390: Starting $16794.99, Transactions $-27516.44, Ending $-10721.45
+# - e4ca05d1-cf66-11ee-98a6-e00af6801390: Starting $8281.16, Transactions $-18874.12, Ending $-10592.96
+# - e4c8c6c2-cf66-11ee-890c-e00af6801390: Starting $40806.80, Transactions $-61305.27, Ending $-20498.47
+# - e4c9b7d7-cf66-11ee-9d95-e00af6801390: Starting $2932.56, Transactions $-26060.35, Ending $-23127.79
+# - e4c9b79c-cf66-11ee-b788-e00af6801390: Starting $1438.64, Transactions $-11316.85, Ending $-9878.21
+# - e4c8f002-cf66-11ee-959c-e00af6801390: Starting $16817.37, Transactions $-21802.51, Ending $-4985.14
+# - e4c8f43d-cf66-11ee-8c00-e00af6801390: Starting $3333.71, Transactions $-3350.14, Ending $-16.43
+# - e4c9dee5-cf66-11ee-bd17-e00af6801390: Starting $3524.70, Transactions $-9251.60, Ending $-5726.90
+# - e4ca5410-cf66-11ee-850b-e00af6801390: Starting $6546.69, Transactions $-18285.37, Ending $-11738.68
+# - e4ca2ce2-cf66-11ee-a4a1-e00af6801390: Starting $8968.44, Transactions $-9218.64, Ending $-250.20
+# - e4ca2ccb-cf66-11ee-baeb-e00af6801390: Starting $23077.87, Transactions $-26665.70, Ending $-3587.83
+# - e4caf024-cf66-11ee-9db8-e00af6801390: Starting $18713.37, Transactions $-30798.13, Ending $-12084.76
+# - e4c9b7de-cf66-11ee-b121-e00af6801390: Starting $15806.56, Transactions $-17379.36, Ending $-1572.80
+# - e4c94270-cf66-11ee-95c2-e00af6801390: Starting $2301.95, Transactions $-22484.41, Ending $-20182.46
+# - e4c91b7c-cf66-11ee-aa54-e00af6801390: Starting $6572.13, Transactions $-14729.36, Ending $-8157.23
+# - e4cac915-cf66-11ee-9501-e00af6801390: Starting $10834.97, Transactions $-29049.35, Ending $-18214.38
+
+
+
+[RESULT]
+    # Overpaid Loans(calculated  with transactions):
+    #     - e4ca5417 - cf66 - 11ee - 82aa - e00af6801390: Starting $6408.11, Payments $-30511.22, Balance $-24103.11
+    # - e4c969b3 - cf66 - 11ee - a3f1 - e00af6801390: Starting $5062.84, Payments $-18252.73, Balance $-13189.89
+
+
+
+[RESULT] Total Asset Size of Institution: $265169305.78

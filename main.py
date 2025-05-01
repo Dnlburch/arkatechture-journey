@@ -23,9 +23,6 @@ def connect_db():
 # --- Phase 2 Analysis Functions ---
 def get_overdrawn_checking_accounts(conn):
     with conn.cursor() as cur:
-        #Essentially we are joining checking and transactions table on the account guid. Then adding starting amount
-        #and the sum of transactions. When transactions added to starting equals negative, its overdrawn. However how do
-        #we know which transactions are for what? Need clarification
         cur.execute("""
             SELECT c.account_guid,
                    c.starting_balance,
@@ -40,34 +37,57 @@ def get_overdrawn_checking_accounts(conn):
         rows = cur.fetchall()
         print("[RESULT] Overdrawn Checking Accounts (calculated with transactions):")
         for account_guid, starting_balance, total_transactions, ending_balance in rows:
-            overdrawn_accounts.append((f"- {account_guid}: Starting ${starting_balance:.2f}, Transactions ${total_transactions:.2f}, Ending ${ending_balance:.2f}"))
             print(f"- {account_guid}: Starting ${starting_balance:.2f}, Transactions ${total_transactions:.2f}, Ending ${ending_balance:.2f}")
 
 
 def get_overpaid_loans(conn):
-    #work in progress. Just using a simple statement as placeholder. We need to know which transactions are against loans
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT account_guid, starting_debt
-            FROM loans
-            WHERE starting_debt < 0
+            SELECT l.account_guid,
+                   l.starting_debt,
+                   COALESCE(SUM(t.transaction_amount), 0) AS total_payments,
+                   l.starting_debt + COALESCE(SUM(t.transaction_amount), 0) AS loan_balance
+            FROM loans l
+            LEFT JOIN transactions t
+            ON l.account_guid = t.account_guid
+            GROUP BY l.account_guid, l.starting_debt
+            HAVING (l.starting_debt + COALESCE(SUM(t.transaction_amount), 0)) < 0
         """)
         rows = cur.fetchall()
-        print("\n[RESULT] Overpaid Loans:")
-        for account_guid, debt in rows:
-            print(f"- {account_guid}: Overpaid by ${abs(debt):.2f}")
+        print("[RESULT] Overpaid Loans (calculated with transactions):")
+        for account_guid, starting_debt, total_payments, loan_balance in rows:
+            print(f"- {account_guid}: Starting ${starting_debt:.2f}, Payments ${total_payments:.2f}, Balance ${loan_balance:.2f}")
 
 def get_total_asset_size(conn):
-    #I feel like this depends as well on the clarification answers. For now we will just add starting balance with starting debt
     with conn.cursor() as cur:
-        cur.execute("""
-            SELECT
-                COALESCE((SELECT SUM(starting_balance) FROM checking), 0) +
-                COALESCE((SELECT SUM(starting_debt) FROM loans), 0)
-            AS total_assets
-        """)
-        total = cur.fetchone()[0]
-        print(f"\n[RESULT] Total Asset Size of Institution: ${total:.2f}")
+        try:
+            cur.execute("""
+                WITH checking_balances AS (
+                    SELECT c.account_guid,
+                           c.starting_balance + COALESCE(SUM(t.transaction_amount), 0) AS balance
+                    FROM checking c
+                    LEFT JOIN transactions t ON c.account_guid = t.account_guid
+                    GROUP BY c.account_guid, c.starting_balance
+                ),
+                loan_balances AS (
+                    SELECT l.account_guid,
+                           l.starting_debt + COALESCE(SUM(t.transaction_amount), 0) AS balance
+                    FROM loans l
+                    LEFT JOIN transactions t ON l.account_guid = t.account_guid
+                    GROUP BY l.account_guid, l.starting_debt
+                )
+                SELECT COALESCE(SUM(balance), 0) AS total_assets
+                FROM (
+                    SELECT balance FROM checking_balances
+                    UNION ALL
+                    SELECT balance FROM loan_balances
+                ) all_balances
+            """)
+            total = cur.fetchone()[0]
+            print(f"[RESULT] Total Asset Size of Institution: ${total:.2f}")
+        except Exception as e:
+            conn.rollback()
+            print(f"[ERROR] Failed to calculate total asset size: {e}")
 
 #PHASE 1
 #so we do lower case everywhere because if you don't, you have key errors (Not matching case) and its just easier to all lower
